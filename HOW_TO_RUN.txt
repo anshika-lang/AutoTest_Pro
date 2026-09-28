@@ -1,0 +1,60 @@
+========================================================================
+   AUTOTEST PRO - AUTONOMOUS VEHICLE PROVING GROUND SIMULATOR
+========================================================================
+
+Follow these 3 simple steps to run this project on your laptop:
+
+------------------------------------------------------------------------
+STEP 1: Make sure Node.js is installed
+------------------------------------------------------------------------
+If you already have Node.js installed, skip to Step 2.
+If not, download and install Node.js (free, LTS version):
+👉 https://nodejs.org/
+
+(Just click Next -> Next -> Finish with default settings).
+
+
+------------------------------------------------------------------------
+STEP 2: Run the Simulator (1-Click)
+------------------------------------------------------------------------
+Simply DOUBLE-CLICK the file:
+👉 start.bat
+
+What will happen automatically:
+1. It checks your Node.js installation.
+2. It automatically installs dependencies (first time only, ~15 sec).
+3. It starts the local server and automatically opens your web browser to:
+   http://localhost:5173/
+
+
+------------------------------------------------------------------------
+STEP 3: Alternative Manual Way (Via Terminal / Command Prompt)
+------------------------------------------------------------------------
+If you prefer using the terminal:
+1. Open Command Prompt or PowerShell in this folder.
+2. Run:
+      npm install
+3. Run:
+      npm run dev
+4. Open your browser and go to:
+      http://localhost:5173/
+
+
+------------------------------------------------------------------------
+HOW TO TEST THE SIMULATION:
+------------------------------------------------------------------------
+1. Click the cyan "RUN SCENARIO" button on the left to start the
+   Urban Pedestrian Crossing test.
+2. Interactive Hotkeys:
+   [P] - Trigger Pedestrian to cross the road
+   [S] - Trigger 3D Stop Sign with 3.0s regulatory dwell ring
+   [O] - Trigger High-Speed Overtaking vehicle & aggressive cut-in
+   [B] - Deploy emergency road hazard barrel
+   [1] - Chase Camera (3rd person)
+   [2] - Cockpit POV (windshield camera)
+   [3] - Top-Down Map (Bird's eye view)
+   [4] - Free Orbit (click & drag mouse to rotate around car)
+   [W, A, S, D] - Manual driving override (when in Manual mode)
+   [Space] - Pause / Resume simulation
+   [R] - Reset vehicle to starting line
+========================================================================

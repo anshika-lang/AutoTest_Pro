@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AutoTest Pro — Autonomous Vehicle Proving Ground & Scenario Suite</title>
+    <meta name="description" content="Advanced Autonomous Vehicle Test Track Simulator featuring realistic event triggers: pedestrian crossing, regulatory stop signs, aggressive overtaking cut-ins, sensor fusion HUD, and OpenSCENARIO export." />
+    <!-- Modern Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay Layer -->
+    <div id="ui-overlay">
+      <!-- Top Navigation & System Status Bar -->
+      <header id="top-bar">
+        <div class="brand-group">
+          <div class="brand-icon">
+            <span class="pulsing-radar-dot"></span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/>
+              <path d="M12 6a6 6 0 1 0 6 6 6 6 0 0 0-6-6zm0 10a4 4 0 1 1 4-4 4 4 0 0 1-4 4z"/>
+              <path d="M12 10a2 2 0 1 0 2 2 2 2 0 0 0-2-2z"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="brand-title">AUTOTEST <span class="accent-cyan">PRO</span></h1>
+            <span class="brand-subtitle">AV PROVING GROUND &middot; SCENARIO SIMULATOR</span>
+          </div>
+        </div>
+
+        <div class="system-pills">
+          <div class="status-pill status-autonomy" id="pill-autonomy">
+            <span class="pill-dot"></span>
+            <span id="autonomy-mode-text">L4 AUTONOMOUS</span>
+          </div>
+          <div class="status-pill status-sim" id="pill-sim">
+            <span class="pill-icon">⏱️</span>
+            <span id="sim-time">00:00.0</span>
+          </div>
+          <div class="status-pill status-fps">
+            <span id="fps-counter">60 FPS</span>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <!-- Weather Selector -->
+          <div class="dropdown-group">
+            <button class="action-btn" id="btn-weather" title="Weather Condition">
+              <span id="weather-icon">☀️</span>
+              <span id="weather-label">Clear Day</span>
+            </button>
+            <div class="dropdown-menu" id="weather-menu">
+              <button class="dropdown-item active" data-weather="day">☀️ Clear Day</button>
+              <button class="dropdown-item" data-weather="rain">🌧️ Rain & Wet Track</button>
+              <button class="dropdown-item" data-weather="fog">🌫️ Dense Sensor Fog</button>
+              <button class="dropdown-item" data-weather="night">🌙 Night Driving</button>
+            </div>
+          </div>
+
+          <!-- Camera Views -->
+          <div class="camera-tabs">
+            <button class="cam-btn active" data-cam="chase" title="Chase Cam [1]">🎥 Chase</button>
+            <button class="cam-btn" data-cam="cockpit" title="Cockpit Cam [2]">🚘 Cockpit</button>
+            <button class="cam-btn" data-cam="bev" title="Bird's Eye View [3]">🛰️ Top-Down</button>
+            <button class="cam-btn" data-cam="orbit" title="Free Orbit [4]">🔄 Free</button>
+          </div>
+
+          <!-- Sound Toggle -->
+          <button class="action-btn icon-only" id="btn-audio" title="Toggle Sound [M]">
+            <span id="audio-icon">🔊</span>
+          </button>
+
+          <!-- Help / Info -->
+          <button class="action-btn icon-only" id="btn-help" title="Keyboard Shortcuts & Guide">
+            <span>❓</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Layout Panels (Floating Glassmorphic Cards) -->
+      <main id="app-workspace">
+        <!-- Left Panel: Scenario Manager & Event Trigger Injector -->
+        <aside id="left-panel" class="hud-panel glass-card">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+              <span>TEST SCENARIOS</span>
+            </div>
+            <span class="badge-accent" id="scenario-stage-badge">READY</span>
+          </div>
+
+          <!-- Scenario Selection Carousel/List -->
+          <div class="scenario-selector-box">
+            <label class="control-label" for="scenario-select">ACTIVE TEST SCENARIO</label>
+            <select id="scenario-select" class="hud-select">
+              <option value="pedestrian">1. NCAP Urban Pedestrian Crossing</option>
+              <option value="stopsign">2. Regulatory Stop Sign Compliance</option>
+              <option value="overtake">3. High-Speed Overtaking & Cut-In</option>
+              <option value="full_lap">4. Full Proving Ground Endurance Lap</option>
+              <option value="free_drive">5. Free Testing & Manual Override</option>
+            </select>
+            <p class="scenario-desc" id="scenario-description">
+              Simulates a pedestrian entering a designated crosswalk ahead of the autonomous vehicle. Evaluates pedestrian detection, Time-To-Collision (TTC), AEB braking curve, and safe clearance dwell.
+            </p>
+          </div>
+
+          <!-- Scenario Playback Controls -->
+          <div class="scenario-actions-bar">
+            <button class="btn-primary" id="btn-start-scenario">
+              <span class="btn-icon">▶</span>
+              <span>RUN SCENARIO</span>
+            </button>
+            <button class="btn-secondary" id="btn-reset-scenario" title="Reset Ego & Actors to initial state">
+              <span class="btn-icon">↺</span>
+              <span>RESET</span>
+            </button>
+            <button class="btn-secondary" id="btn-pause-sim" title="Pause / Resume [Space]">
+              <span class="btn-icon" id="pause-icon">⏸</span>
+            </button>
+          </div>
+
+          <!-- Live Event Trigger Injector -->
+          <div class="trigger-section">
+            <div class="section-heading">
+              <span>MANUAL EVENT INJECTORS</span>
+              <span class="pulse-indicator">LIVE</span>
+            </div>
+            <p class="section-subtext">Inject real-time hazards directly into the test track during execution:</p>
+            
+            <div class="trigger-grid">
+              <button class="trigger-btn trigger-pedestrian" id="btn-trigger-pedestrian" title="Trigger pedestrian to cross road immediately [P]">
+                <div class="trigger-icon-box">🚶</div>
+                <div class="trigger-info">
+                  <div class="trigger-name">Pedestrian Crossing</div>
+                  <div class="trigger-detail">Trigger Crosswalk Jaywalk</div>
+                </div>
+                <span class="key-hint">P</span>
+              </button>
+
+              <button class="trigger-btn trigger-stop" id="btn-trigger-stop" title="Enforce Stop Sign test at intersection [S]">
+                <div class="trigger-icon-box">🛑</div>
+                <div class="trigger-info">
+                  <div class="trigger-name">Stop Sign Challenge</div>
+                  <div class="trigger-detail">Enforce 3s Stop Dwell</div>
+                </div>
+                <span class="key-hint">S</span>
+              </button>
+
+              <button class="trigger-btn trigger-overtake" id="btn-trigger-overtake" title="Trigger target vehicle to overtake and cut in [O]">
+                <div class="trigger-icon-box">🏎️</div>
+                <div class="trigger-info">
+                  <div class="trigger-name">Overtaking Cut-In</div>
+                  <div class="trigger-detail">High-speed cut-in challenge</div>
+                </div>
+                <span class="key-hint">O</span>
+              </button>
+
+              <button class="trigger-btn trigger-obstacle" id="btn-trigger-obstacle" title="Spawn pop-up hazard barrel [B]">
+                <div class="trigger-icon-box">⚠️</div>
+                <div class="trigger-info">
+                  <div class="trigger-name">Pop-up Obstacle</div>
+                  <div class="trigger-detail">Drop emergency road barrel</div>
+                </div>
+                <span class="key-hint">B</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Scenario Parameters Slider Controls -->
+          <div class="params-section">
+            <div class="params-toggle" id="params-toggle">
+              <span>⚙️ SCENARIO PARAMETERS</span>
+              <span class="toggle-arrow">▼</span>
+            </div>
+            <div class="params-body" id="params-body">
+              <div class="param-row">
+                <div class="param-label-wrap">
+                  <span class="param-title">Ego Target Speed</span>
+                  <span class="param-val" id="val-target-speed">50 km/h</span>
+                </div>
+                <input type="range" class="hud-slider" id="slider-target-speed" min="20" max="90" step="5" value="50">
+              </div>
+
+              <div class="param-row">
+                <div class="param-label-wrap">
+                  <span class="param-title">Pedestrian Speed</span>
+                  <span class="param-val" id="val-ped-speed">1.4 m/s (Walk)</span>
+                </div>
+                <input type="range" class="hud-slider" id="slider-ped-speed" min="0.8" max="3.5" step="0.2" value="1.4">
+              </div>
+
+              <div class="param-row">
+                <div class="param-label-wrap">
+                  <span class="param-title">Cut-In Distance Gap</span>
+                  <span class="param-val" id="val-cutin-gap">10 m</span>
+                </div>
+                <input type="range" class="hud-slider" id="slider-cutin-gap" min="5" max="25" step="1" value="10">
+              </div>
+
+              <div class="param-row">
+                <div class="param-label-wrap">
+                  <span class="param-title">Road Surface Grip (μ)</span>
+                  <span class="param-val" id="val-friction">0.95 (Dry Tarmac)</span>
+                </div>
+                <input type="range" class="hud-slider" id="slider-friction" min="0.30" max="1.0" step="0.05" value="0.95">
+              </div>
+            </div>
+          </div>
+
+          <!-- Export & Compliance Report Bar -->
+          <div class="export-box">
+            <button class="btn-outline" id="btn-export-openscenario" title="Export as ASAM OpenSCENARIO 1.2 XML">
+              <span>📄 Export OpenSCENARIO (.xosc)</span>
+            </button>
+            <button class="btn-outline" id="btn-export-telemetry" title="Download Telemetry Blackbox JSON">
+              <span>📊 Export Telemetry (.json)</span>
+            </button>
+          </div>
+        </aside>
+
+        <!-- Center: Floating Target & Safety Envelope HUD -->
+        <div id="center-hud">
+          <!-- Forward Collision Warning (FCW) Banner (Appears when TTC < 2.5s) -->
+          <div id="fcw-banner" class="fcw-alert hidden">
+            <div class="fcw-icon">⚠️</div>
+            <div class="fcw-text">
+              <div class="fcw-headline">COLLISION WARNING</div>
+              <div class="fcw-subline">AEB ACTIVE &middot; TTC: <span id="fcw-ttc">1.2s</span></div>
+            </div>
+          </div>
+
+          <!-- State Machine Badge Flow -->
+          <div id="state-flow" class="state-flow-hud">
+            <span class="state-step active" id="st-cruise">CRUISING</span>
+            <span class="state-arrow">&rarr;</span>
+            <span class="state-step" id="st-detect">TARGET DETECTED</span>
+            <span class="state-arrow">&rarr;</span>
+            <span class="state-step" id="st-brake">AEB / YIELD</span>
+            <span class="state-arrow">&rarr;</span>
+            <span class="state-step" id="st-dwell">STOP DWELL</span>
+            <span class="state-arrow">&rarr;</span>
+            <span class="state-step" id="st-proceed">PROCEED</span>
+          </div>
+
+          <!-- Stop Sign Countdown Ring (Appears when stopped at stop sign) -->
+          <div id="dwell-countdown-box" class="dwell-box hidden">
+            <div class="dwell-sign">STOP</div>
+            <div class="dwell-counter">
+              <svg class="dwell-circle-svg" width="80" height="80">
+                <circle class="dwell-bg" cx="40" cy="40" r="34"></circle>
+                <circle class="dwell-progress" id="dwell-circle-bar" cx="40" cy="40" r="34"></circle>
+              </svg>
+              <span id="dwell-sec-text">3.0s</span>
+            </div>
+            <div class="dwell-label">MANDATORY REGULATORY DWELL</div>
+          </div>
+        </div>
+
+        <!-- Right Panel: Sensor Perception & AI Vision HUD -->
+        <aside id="right-panel" class="hud-panel glass-card">
+          <!-- Sensor Vision Header -->
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              <span>PERCEPTION & SENSOR STACK</span>
+            </div>
+            <span class="badge-status online">FUSION ACTIVE</span>
+          </div>
+
+          <!-- Simulated Forward AI Vision Camera Window -->
+          <div class="vision-window-box">
+            <div class="vision-header">
+              <span class="cam-tag">FRONT TRIFOCAL CAM &middot; 4K 60FPS</span>
+              <span class="ai-box-badge" id="ai-objects-count">0 OBJECTS</span>
+            </div>
+            <div class="vision-viewport-wrap">
+              <canvas id="vision-canvas" width="300" height="170"></canvas>
+              <div class="camera-reticle">
+                <div class="crosshair-center"></div>
+                <div class="horizon-line"></div>
+              </div>
+              <!-- Simulated AI Bounding Box overlay -->
+              <div id="ai-boxes-overlay"></div>
+            </div>
+            <div class="vision-telemetry">
+              <span>FOV: 120°</span>
+              <span>Confidence: 98.4%</span>
+              <span>Latency: 14ms</span>
+            </div>
+          </div>
+
+          <!-- Simulated 360° LiDAR Radar Scope -->
+          <div class="radar-scope-box">
+            <div class="radar-header">
+              <span class="cam-tag">HESAI 128-BEAM LiDAR RADAR SCOPE</span>
+              <span class="radar-range-tag">RANGE: 75m</span>
+            </div>
+            <div class="radar-canvas-wrap">
+              <canvas id="radar-canvas" width="260" height="240"></canvas>
+              <div class="radar-legend">
+                <span class="legend-item"><span class="legend-dot green"></span> Ego</span>
+                <span class="legend-item"><span class="legend-dot amber"></span> Pedestrian</span>
+                <span class="legend-item"><span class="legend-dot orange"></span> Adversary</span>
+                <span class="legend-item"><span class="legend-dot red"></span> Stop Line</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Real-Time Target Track Card -->
+          <div class="target-track-card" id="target-track-card">
+            <div class="track-header">
+              <span class="track-title" id="track-lead-name">PRIMARY TARGET: NONE</span>
+              <span class="track-threat safe" id="track-lead-threat">SAFE</span>
+            </div>
+            <div class="track-grid">
+              <div class="track-stat">
+                <span class="stat-lbl">DISTANCE</span>
+                <span class="stat-val" id="track-dist">-- m</span>
+              </div>
+              <div class="track-stat">
+                <span class="stat-lbl">REL SPEED</span>
+                <span class="stat-val" id="track-rel-speed">-- km/h</span>
+              </div>
+              <div class="track-stat">
+                <span class="stat-lbl">EST. TTC</span>
+                <span class="stat-val" id="track-ttc">-- s</span>
+              </div>
+              <div class="track-stat">
+                <span class="stat-lbl">BEARING</span>
+                <span class="stat-val" id="track-bearing">0.0°</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Diagnostic Terminal Logs -->
+          <div class="terminal-box">
+            <div class="terminal-header">
+              <span>DIAGNOSTIC EVENT LOG</span>
+              <button class="btn-text-clear" id="btn-clear-log">CLEAR</button>
+            </div>
+            <div class="terminal-content" id="terminal-log">
+              <div class="log-line info"><span class="time">[00:00.0]</span> AUTOTEST PRO Autonomous Stack Initialized.</div>
+              <div class="log-line success"><span class="time">[00:00.0]</span> Waypoint trajectory loaded: High-Speed Proving Ground Loop.</div>
+              <div class="log-line info"><span class="time">[00:00.1]</span> Ready for test execution. Select a scenario and press RUN.</div>
+            </div>
+          </div>
+        </aside>
+      </main>
+
+      <!-- Bottom HUD: Vehicle Telemetry & Cockpit Instruments -->
+      <footer id="bottom-hud" class="hud-panel glass-card">
+        <!-- Speedometer Section -->
+        <div class="instrument-group speed-group">
+          <div class="speed-dial-wrap">
+            <svg class="speed-gauge-svg" width="130" height="130" viewBox="0 0 100 100">
+              <circle class="gauge-track" cx="50" cy="50" r="42" />
+              <circle class="gauge-val" id="speed-gauge-bar" cx="50" cy="50" r="42" />
+            </svg>
+            <div class="speed-readout">
+              <span class="speed-number" id="telemetry-speed">0</span>
+              <span class="speed-unit" id="telemetry-unit">KM/H</span>
+            </div>
+          </div>
+          <div class="gear-selector">
+            <span class="gear" id="gear-P">P</span>
+            <span class="gear" id="gear-R">R</span>
+            <span class="gear" id="gear-N">N</span>
+            <span class="gear active" id="gear-D">D</span>
+          </div>
+        </div>
+
+        <!-- Pedals & Actuation Bars -->
+        <div class="instrument-group pedals-group">
+          <div class="pedal-bar-wrap">
+            <div class="pedal-label">
+              <span>THROTTLE</span>
+              <span id="txt-throttle">0%</span>
+            </div>
+            <div class="pedal-track">
+              <div class="pedal-fill throttle-fill" id="bar-throttle" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="pedal-bar-wrap">
+            <div class="pedal-label">
+              <span>BRAKE / AEB</span>
+              <span id="txt-brake">0%</span>
+            </div>
+            <div class="pedal-track">
+              <div class="pedal-fill brake-fill" id="bar-brake" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="pedal-bar-wrap">
+            <div class="pedal-label">
+              <span>STEERING ANGLE</span>
+              <span id="txt-steer">0.0°</span>
+            </div>
+            <div class="steer-track">
+              <div class="steer-center-mark"></div>
+              <div class="steer-marker" id="marker-steer"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Safety Envelope & G-Force Accelerometer -->
+        <div class="instrument-group gforce-group">
+          <div class="g-ball-wrap">
+            <div class="g-grid">
+              <div class="g-ring r1"></div>
+              <div class="g-ring r2"></div>
+              <div class="g-axis-x"></div>
+              <div class="g-axis-y"></div>
+              <div class="g-dot" id="g-dot"></div>
+            </div>
+            <span class="g-readout" id="g-readout">0.00 G</span>
+          </div>
+          <div class="g-stats">
+            <div class="g-stat-item">
+              <span class="g-stat-lbl">PEAK DECEL</span>
+              <span class="g-stat-val" id="telemetry-max-decel">0.00 g</span>
+            </div>
+            <div class="g-stat-item">
+              <span class="g-stat-lbl">MIN TTC</span>
+              <span class="g-stat-val" id="telemetry-min-ttc">-- s</span>
+            </div>
+            <div class="g-stat-item">
+              <span class="g-stat-lbl">STOP DIST</span>
+              <span class="g-stat-val" id="telemetry-stop-dist">-- m</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Autonomy & Mode Controls -->
+        <div class="instrument-group controls-group">
+          <div class="drive-mode-toggles">
+            <button class="mode-btn active" id="mode-btn-auto" title="Full L4 Autonomous Driving">
+              <span class="mode-icon">🤖</span>
+              <span>AUTONOMOUS</span>
+            </button>
+            <button class="mode-btn" id="mode-btn-manual" title="Manual Drive [WASD / Arrows]">
+              <span class="mode-icon">🎮</span>
+              <span>MANUAL (WASD)</span>
+            </button>
+            <button class="mode-btn danger" id="mode-btn-estop" title="Emergency Stop [E]">
+              <span class="mode-icon">🛑</span>
+              <span>E-STOP</span>
+            </button>
+          </div>
+          <div class="status-summary">
+            <span class="dot-live"></span>
+            <span id="actuator-status-text">Trajectory tracking active &middot; Nominal lateral error 0.04m</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Scenario Test Completion & Evaluation Modal -->
+    <div id="modal-result" class="modal-backdrop hidden">
+      <div class="modal-card glass-card">
+        <div class="modal-header">
+          <div class="result-badge-wrap">
+            <span class="result-badge pass" id="modal-result-badge">TEST PASSED</span>
+            <span class="result-score" id="modal-result-score">5-STAR NCAP</span>
+          </div>
+          <button class="modal-close-btn" id="btn-close-modal">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <h2 class="modal-title" id="modal-scenario-name">Urban Pedestrian Safety Scenario</h2>
+          <p class="modal-summary" id="modal-scenario-summary">
+            Vehicle successfully detected the pedestrian entering the crosswalk, initiated graduated braking with a minimum TTC of 2.1s, safely stopped 2.8m before the crosswalk line, and waited until the pedestrian cleared the road boundary.
+          </p>
+
+          <div class="eval-metrics-grid">
+            <div class="metric-card">
+              <span class="m-label">COLLISION RESULT</span>
+              <span class="m-val success" id="m-collision">ZERO CONTACT (0)</span>
+            </div>
+            <div class="metric-card">
+              <span class="m-label">MINIMUM TTC</span>
+              <span class="m-val" id="m-min-ttc">2.14 s</span>
+              <span class="m-benchmark">Pass Threshold: &gt; 1.2s</span>
+            </div>
+            <div class="metric-card">
+              <span class="m-label">STOP MARGIN</span>
+              <span class="m-val" id="m-stop-margin">2.82 m</span>
+              <span class="m-benchmark">Required: &gt; 1.5m</span>
+            </div>
+            <div class="metric-card">
+              <span class="m-label">MAX DECELERATION</span>
+              <span class="m-val" id="m-max-decel">-0.62 g</span>
+              <span class="m-benchmark">Comfort Limit: &lt; 0.85g</span>
+            </div>
+            <div class="metric-card">
+              <span class="m-label">DWELL TIME</span>
+              <span class="m-val" id="m-dwell-time">3.05 s</span>
+              <span class="m-benchmark">Regulatory: &ge; 3.0s</span>
+            </div>
+            <div class="metric-card">
+              <span class="m-label">REACTION LATENCY</span>
+              <span class="m-val" id="m-reaction">124 ms</span>
+              <span class="m-benchmark">Sensor-to-Actuator</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-secondary" id="btn-modal-retry">↺ RETRY SCENARIO</button>
+          <button class="btn-primary" id="btn-modal-export-xosc">📄 EXPORT OPENSCENARIO XML</button>
+          <button class="btn-outline" id="btn-modal-export-json">📊 DOWNLOAD TELEMETRY</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Help & Keyboard Shortcuts Modal -->
+    <div id="modal-help" class="modal-backdrop hidden">
+      <div class="modal-card glass-card">
+        <div class="modal-header">
+          <h2 class="modal-title">Autonomous Vehicle Proving Ground Guide</h2>
+          <button class="modal-close-btn" id="btn-close-help">&times;</button>
+        </div>
+        <div class="modal-body help-body">
+          <h3>🎮 Keybindings & Shortcuts</h3>
+          <div class="shortcuts-grid">
+            <div class="sc-row"><kbd>P</kbd> <span>Trigger Pedestrian Crosswalk Jaywalk</span></div>
+            <div class="sc-row"><kbd>S</kbd> <span>Trigger Regulatory Stop Sign Challenge</span></div>
+            <div class="sc-row"><kbd>O</kbd> <span>Trigger High-Speed Overtaking & Cut-In</span></div>
+            <div class="sc-row"><kbd>B</kbd> <span>Deploy Pop-up Road Hazard Barrel</span></div>
+            <div class="sc-row"><kbd>Space</kbd> <span>Pause / Resume Simulation</span></div>
+            <div class="sc-row"><kbd>R</kbd> <span>Reset Vehicle & Scenario</span></div>
+            <div class="sc-row"><kbd>1 - 4</kbd> <span>Switch Camera Views (Chase, Cockpit, BEV, Orbit)</span></div>
+            <div class="sc-row"><kbd>W / A / S / D</kbd> <span>Manual Drive Override (Throttle, Steer, Brake)</span></div>
+            <div class="sc-row"><kbd>E</kbd> <span>Emergency Stop (E-STOP)</span></div>
+            <div class="sc-row"><kbd>M</kbd> <span>Toggle Audio Effects</span></div>
+          </div>
+
+          <h3 style="margin-top: 18px;">🚗 Features Included</h3>
+          <ul class="help-list">
+            <li><strong>Realistic Closed-Loop Proving Ground:</strong> Dual-lane high-speed straight, urban sector with MUTCD stop sign, zebra crosswalk, and handling curves.</li>
+            <li><strong>Kinematic Vehicle Model:</strong> Pure Pursuit lateral path tracking, longitudinal PID velocity control, and smooth jerk-limited braking.</li>
+            <li><strong>Event Triggers:</strong> Pedestrian crossing with live clearance tracking, regulatory stop sign with 3s dwell countdown, high-speed vehicle overtaking with aggressive cut-in.</li>
+            <li><strong>Perception & Sensor HUD:</strong> Forward AI camera with bounding boxes, 360° LiDAR radar scope, real-time TTC calculation.</li>
+            <li><strong>Industry Standards:</strong> OpenSCENARIO (.xosc) XML export and blackbox telemetry recording.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Application Script Entry Point -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
